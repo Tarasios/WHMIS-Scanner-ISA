@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WHMIS Label Scanner</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .container { max-width: 600px; margin: auto; }
+        .results { background: #f9f9f9; padding: 15px; margin-top: 20px; border-radius: 5px; }
+        .results h2 { margin-top: 0; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WHMIS Label Scanner</h1>
+        <input type="file" id="imageInput" accept="image/*"><br><br>
+        <button id="submitButton">Scan Image</button>
+
+        <div id="loading" style="display:none;">Processing image, please wait...</div>
+
+        <div id="results" class="results" style="display:none;">
+            <h2>Results:</h2>
+            <p><strong>Summary:</strong> <span id="summary"></span></p>
+            <p><strong>Detected Pictograms:</strong> <span id="pictograms"></span></p>
+            <p><strong>Full Text:</strong></p>
+            <pre id="fullText"></pre>
+        </div>
+
+        <div id="error" class="error"></div>
+    </div>
+
+    <script>
+        document.getElementById('submitButton').addEventListener('click', function() {
+            var input = document.getElementById('imageInput');
+            var loading = document.getElementById('loading');
+            var resultsDiv = document.getElementById('results');
+            var errorDiv = document.getElementById('error');
+            resultsDiv.style.display = 'none';
+            errorDiv.textContent = '';
+
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                var formData = new FormData();
+                formData.append('image', file);
+
+                loading.style.display = 'block';
+
+                fetch('https://5c41-2001-569-7c71-6400-a1b9-13b1-82c9-f8b6.ngrok-free.app/process_label', { // Replace with your ngrok URL
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    loading.style.display = 'none';
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    resultsDiv.style.display = 'block';
+                    document.getElementById('summary').textContent = data.summary;
+                    document.getElementById('pictograms').textContent = data.pictograms.join(', ');
+                    document.getElementById('fullText').textContent = data.full_text;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    errorDiv.textContent = 'Error: ' + error.message;
+                });
+            } else {
+                alert('Please select an image file.');
+            }
+        });
+    </script>
+</body>
+</html>
